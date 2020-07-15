@@ -139,12 +139,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\PackAndVirtualize\PackAndVirtualize\helper.cpp" />
+    <ClCompile Include="..\..\PackAndVirtualize\PackAndVirtualize\pack.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="packed_exe_section.cpp" />
+    <ClCompile Include="unpacking.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\PackAndVirtualize\PackAndVirtualize\helper.h" />
+    <ClInclude Include="..\..\PackAndVirtualize\PackAndVirtualize\pack.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="packed_exe_section.h" />
+    <ClInclude Include="unpacking.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

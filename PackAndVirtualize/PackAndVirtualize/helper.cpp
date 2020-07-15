@@ -5,7 +5,8 @@
 const LPVOID acquire_file_base(const char* filename) {
 
 	const HANDLE hFile = CreateFileA(filename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-
+	char buffer[260];
+	const auto currentDir = GetCurrentDirectoryA(MAX_PATH, (LPSTR)buffer);
 	if (hFile == INVALID_HANDLE_VALUE) {
 		printf("CreateFile failed in read mode, error: %d", GetLastError());
 		return nullptr;

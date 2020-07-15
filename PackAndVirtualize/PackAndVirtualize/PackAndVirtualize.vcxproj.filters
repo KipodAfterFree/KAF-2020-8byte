@@ -21,9 +21,21 @@
     <ClCompile Include="helper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opcode_helpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="helper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pack.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opcode_helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

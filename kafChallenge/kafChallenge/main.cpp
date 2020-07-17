@@ -1,75 +1,61 @@
 #include "main.h"
+#include "unpacking.h"
+#include "packed_exe_section.h"
+
 #include <windows.h>
 #include <iostream>
 #include "../../PackAndVirtualize/PackAndVirtualize/helper.h"
 #include "../../PackAndVirtualize/PackAndVirtualize/pack.h"
-#include "unpacking.h"
 
-#define CUSTOM_SECTION_NAME ".awsm"
+#define FUNC_PTR_TO_LITTLE_ENDIAN(func_name) (reinterpret_cast<unsigned int>(&func_name) >> 24) & 0x000000ff | \
+											 (reinterpret_cast<unsigned int>(&func_name) << 8)  & 0x00ff0000 | \
+											 (reinterpret_cast<unsigned int>(&func_name) >> 8)  & 0x0000ff00 | \
+											 (reinterpret_cast<unsigned int>(&func_name) << 24) & 0xff000000
+												 
 
-#define INT3 0xcc
 
-char byteShellcode[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 // 8 byte current instruction
+#pragma section(".awsm1", execute, read, write)
+#pragma comment(linker, "/SECTION:.awsm1,ERW")
 
-						}; 
+__declspec(allocate(".awsm1")) unsigned char byteShellcode[17] = { 
+	0xcc,
+	0x58, // pop eax
+	0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, // Reserved for current unpacked opcode
+	// 0xEA, 
+	0x68, // push
+	// 0x8D, 0x3D, // lea edi, FUNC_PTR_TO_LITTLE_ENDIAN
+	0x00, 0x00, 0x00, 0x00, // Reserved for main loop address
+	0xC3 // ret
+	// 0xFF, 0xE7 // Absolute `jmp eax`
+};
+//        ^ Address
+//  ^ Absolute jump 
 
+#pragma code_seg(".text")
 
 int main(int argc, char* argv[]) {
+	// Display prints at beginning
 	InitiateGreeting();
 
+	// Map packed executable into memory
 	const auto& baseExecutable = acquire_file_base("packedKafChal.exe");
 	if (baseExecutable == nullptr) {
 		return 1;
 	}
 
-	const PIMAGE_DOS_HEADER dosHeader = static_cast<PIMAGE_DOS_HEADER>(baseExecutable);
-	const PIMAGE_NT_HEADERS32 ntHeader = reinterpret_cast<PIMAGE_NT_HEADERS32>(static_cast<char*>(baseExecutable) + dosHeader->e_lfanew);
+	const auto& currentSection = get_section_by_name(baseExecutable, CUSTOM_SECTION_NAME);
 
-	const PIMAGE_FILE_HEADER fileHeader = &ntHeader->FileHeader;
-	const PIMAGE_OPTIONAL_HEADER32 optionalHeader = &ntHeader->OptionalHeader;
-
-	const LPVOID sectionBegin = reinterpret_cast<BYTE*>(optionalHeader) + fileHeader->SizeOfOptionalHeader;
-	const LPVOID sectionEnd = static_cast<BYTE*>(sectionBegin) + fileHeader->NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
-	PIMAGE_SECTION_HEADER currentSection = static_cast<PIMAGE_SECTION_HEADER>(sectionBegin);
-
-	int i;
-
-	// Find .awsm section
-	for (i = 0; i < fileHeader->NumberOfSections && 
-		std::strcmp(reinterpret_cast<char*>(currentSection->Name), CUSTOM_SECTION_NAME); i++) {
-		currentSection = reinterpret_cast<PIMAGE_SECTION_HEADER>(static_cast<BYTE*>(sectionBegin) + i * sizeof(IMAGE_SECTION_HEADER));
-	}
-
-	// Handle could not find .awsm section case
-	if (i == fileHeader->NumberOfSections) {
-		printf("Could not find %s section, exiting...\n", CUSTOM_SECTION_NAME);
+	if (currentSection == NULL) {
 		return 1;
 	}
-	// address += currentSection->SizeOfRawData;
+	// Get offset to beginning of the .awsm section
 	BYTE* awesomeCodeStart = static_cast<BYTE*>(baseExecutable) + currentSection->PointerToRawData;
 	const DWORD sectionLength = currentSection->SizeOfRawData;
 
-	BYTE* currentPtr = awesomeCodeStart;
-	BYTE* endOfSection = awesomeCodeStart + sectionLength;
-	int actualIndex = 0;
+	// Start unpacking
+	init_unpacking(awesomeCodeStart, sectionLength);
 
-	while (*reinterpret_cast<LONG64*>(currentPtr + actualIndex) != 0xdeadbeef) {
-		int count = 0;
-		do {
-			*currentPtr = huge_unpacking_function(*(currentPtr + actualIndex));
-
-			++currentPtr;
-			++count;
-		} while (*reinterpret_cast<WORD*>(currentPtr + actualIndex) != 0x1337);
-		if (count >= 8) {
-			printf("Found count: %d %x\n", count, currentPtr);
-		}
-		actualIndex += 2;
-	}
-
-	while (*reinterpret_cast<LONG64*>(currentPtr) != 0xdeadbeef)
-		*(currentPtr++) = INT3;
-
+	// Unmap file from memory
 	UnmapViewOfFile(baseExecutable);
 }
 

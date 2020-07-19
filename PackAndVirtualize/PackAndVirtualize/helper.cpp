@@ -21,13 +21,13 @@ const PIMAGE_SECTION_HEADER get_section_by_name(const LPVOID baseExecutable, con
 	int i;
 
 	// Find .awsm section
-	for (i = 0; i < fileHeader->NumberOfSections &&
+	for (i = 0; i <= fileHeader->NumberOfSections &&
 		std::strcmp(reinterpret_cast<char*>(currentSection->Name), custom_section_name); i++) {
 		currentSection = reinterpret_cast<PIMAGE_SECTION_HEADER>(static_cast<BYTE*>(firstSectionBegin) + i * sizeof(IMAGE_SECTION_HEADER));
 	}
 
 	// Handle could not find .awsm section case
-	if (i == fileHeader->NumberOfSections) {
+	if (i > fileHeader->NumberOfSections) {
 		printf("Could not find %s section, exiting...\n", custom_section_name);
 		return NULL;
 	}
@@ -54,7 +54,7 @@ HMODULE* get_proc_modules(HANDLE hProc, DWORD& size) {
 }
 
 const DWORD get_section_address(const char* sectionName) {
-	return get_section_by_name((LPVOID)GetModuleHandle(NULL), ".text")->VirtualAddress;
+	return get_section_by_name((LPVOID)GetModuleHandle(NULL), sectionName)->VirtualAddress;
 }
 
 const LPVOID acquire_file_base(const char* filename) {

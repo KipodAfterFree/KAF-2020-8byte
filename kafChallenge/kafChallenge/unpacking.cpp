@@ -3,9 +3,17 @@
 #include "../../PackAndVirtualize/PackAndVirtualize/pack.h"
 #include "main.h"
 #include <iostream>
+#include <string.h>
 
+
+#define FILLER_SIZE 5 * 1024 * 1024 // 10MB
 
 mainLoopFrame mainLoopUnpack;
+
+#define TO_LITTLE_ENDIAN(val) static_cast<signed int>(val >> 24 & 0x000000ff | \
+													  val << 8  & 0x00ff0000 | \
+													  val >> 8  & 0x0000ff00 | \
+													  val << 24 & 0xff000000)
 
 void init_unpacking(BYTE* codeStart, const DWORD sectionLength)
 {
@@ -14,14 +22,20 @@ void init_unpacking(BYTE* codeStart, const DWORD sectionLength)
 	*/
 
 	mainLoopUnpack.currentPtr = codeStart;
+	mainLoopUnpack.awsmStart = codeStart;
 	mainLoopUnpack.actualIndex = 0;
+	mainLoopUnpack.unpackEFlags = 0;
 	mainLoopUnpack.mainStackEsp = { 0 };
 	mainLoopUnpack.unpackStackEsp = { 0 };
 
 	// Set jmp absolute address to main_unpacking_loop's address
 	unsigned int mainLoopAddress = reinterpret_cast<unsigned int>(&main_unpacking_loop);
-	const DWORD textSection = get_section_address(".text");
-	*reinterpret_cast<unsigned int*>(&byteShellcode[8 + 2 + 1]) = mainLoopAddress;
+#ifdef _DEBUG
+	* reinterpret_cast<unsigned int*>(&byteShellcode[8 + 2 + 1]) = mainLoopAddress;
+#else
+	* reinterpret_cast<unsigned int*>(&byteShellcode[8 + 2]) = mainLoopAddress;
+#endif
+	
 	// unsigned char currentOpcode[8] = { 0x55, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
 	// Go into main loop
 	// HANDLE myThread = GetCurrentThread();
@@ -61,25 +75,62 @@ void parse_current_opcode(unsigned char* opcodes, unsigned char opcode_length) {
 				mainLoopUnpack.currentPtr += offset;
 				clean_opcodes(opcodes);
 				break;
+			// jne
 			case 0x75:
-				__asm {
-					pop eax // Get return address
-					popf // Get flags
-					
-					jz nojmp
+			case 0x74:
+				if (opcodes[0] == 0x75) {
+					__asm {
+						mov eax, [mainLoopUnpack.unpackEFlags]
+						push eax
+						popfd
+						jz successjmp
+					}
 				}
-				offset = 1;
-			nojmp:
-
-				__asm {
-					pushf
-					push eax
+				else {
+					__asm {
+						mov eax, [mainLoopUnpack.unpackEFlags]
+						push eax
+						popfd
+						jnz successjmp
+					}
 				}
-				if (offset == 0) {
-					printf("IT IS 0");
+				offset = static_cast<signed char>(opcodes[1]);
+			successjmp:
+				if (offset != 0) {
+					while (offset != 0) {
+						if (*(WORD*)mainLoopUnpack.currentPtr != 0x1337) {
+							--offset;
+							++mainLoopUnpack.actualIndex;
+						}
+						else
+							++mainLoopUnpack.currentPtr;
+						++mainLoopUnpack.currentPtr;
+					}
+					++mainLoopUnpack.currentPtr;
+					++mainLoopUnpack.currentPtr;
 				}
+				clean_opcodes(opcodes);
 				break;
 			}
+	case 5:
+		switch (opcodes[0]) {
+			case 0xE8:
+				const BYTE * beginningAwsmFile = mainLoopUnpack.awsmStart;
+				const unsigned int offset = mainLoopUnpack.actualIndex;
+				const BYTE* actual_address = mainLoopUnpack.awsmStart + FILLER_SIZE + offset;
+				signed int* offsetInCall = reinterpret_cast<signed int*>(opcodes + 1);
+				const signed int relative_address = *offsetInCall;
+				const BYTE* final_address = actual_address + relative_address;
+				//								                 v prelog
+				//								                     v call length
+#ifdef _DEBUG
+				* offsetInCall = final_address - (byteShellcode + 2 + 5);
+#else 
+				* offsetInCall = final_address - (byteShellcode + 1 + 5);
+#endif
+				// printf("hello world");
+				break;
+		}
 			
 		break;
 	}
@@ -118,6 +169,7 @@ void main_unpacking_loop_() {
 	do {
 		*(BYTE*)(currentOpcode + count) = huge_unpacking_function(*(BYTE*)mainLoopUnpack.currentPtr);
 
+		++mainLoopUnpack.actualIndex;
 		++mainLoopUnpack.currentPtr;
 		++count;
 	} while (*reinterpret_cast<WORD*>(mainLoopUnpack.currentPtr) != 0x1337);
@@ -130,7 +182,13 @@ void main_unpacking_loop_() {
 	parse_current_opcode(currentOpcode, count);
 
 	// Copy opcodes to actual executed shellcode
-	memcpy(byteShellcode + 2, currentOpcode, 8);
+	
+#ifdef _DEBUG
+	memcpy(byteShellcode + 1 + 1, currentOpcode, 8);
+#else 
+	memcpy(byteShellcode + 1, currentOpcode, 8);
+#endif
+		
 
 	// Save main stack pointer, and restore unpacked stack pointer (and frame).
 
@@ -147,7 +205,8 @@ void main_unpacking_loop_() {
 	}
 }
 
-
+// extern void* memcpy(void*, const void*, size_t);
+// #pragma intrinsic(memcpy)
 __declspec(naked) void main_unpacking_loop()
 {
 	/*
@@ -160,10 +219,13 @@ __declspec(naked) void main_unpacking_loop()
 		// Save unpacking stack pointer and insert it into global variable
 		mov [mainLoopUnpack.unpackStackEsp], esp
 
+		// save flags
+		pushfd
+		pop [mainLoopUnpack.unpackEFlags]
 		// Restore main stack pointer and push unpacking frame
 		mov esp, [mainLoopUnpack.mainStackEsp]
 		pushad
-
+		
 		 // Save state of running program
 		mov ebp, esp
 		sub esp, 12 // 8 for currentOpcodes + 1 for counter (12 for alignment)
@@ -239,9 +301,17 @@ __declspec(naked) void main_unpacking_loop()
 
 		// ++mainLoopUnpack.currentPtr;
 		// ++count;
-		inc [esi]
-		inc [edi] 
-		
+		mov ebx, [esi]
+		inc ebx 
+		mov [esi], ebx
+		inc [edi]
+
+		// ++mainLoopUnpack.actualIndex
+		lea edi, mainLoopUnpack.actualIndex
+		mov ecx, [edi]
+		inc ecx 
+		mov [edi], ecx
+
 		// *reinterpret_cast<WORD*>(mainLoopUnpack.currentPtr)
 		mov esi, [esi]
 		xor ebx, ebx
@@ -254,7 +324,9 @@ __declspec(naked) void main_unpacking_loop()
 
 		// mainLoopUnpack.currentPtr += 2;
 		lea esi, mainLoopUnpack.currentPtr
-		add [esi], 2
+		mov eax, [esi]
+		add eax, 2
+		mov [esi], eax
 
 		// Count
 		lea edi, [ebp - 8]
@@ -263,6 +335,8 @@ __declspec(naked) void main_unpacking_loop()
 
 		// parse_current_opcode(currentOpcode, count);
 		push eax // count
+
+		lea esi, [ebp - 7]
 		push esi // currentOpcode
 		call parse_current_opcode
 		add esp, 8
@@ -274,7 +348,11 @@ __declspec(naked) void main_unpacking_loop()
 		push ebx  // currentOpcode
 
 		lea ebx, byteShellcode
-		add ebx, 2
+#ifdef _DEBUG
+			add ebx, 2
+#else
+			add ebx, 1
+#endif
 		push ebx // byteShellcode + 2
 
 		call memcpy

@@ -12,9 +12,11 @@
 // Define frame of main_unpacking_loop
 typedef struct {
 	BYTE* currentPtr;
-	int actualIndex;
+	DWORD actualIndex;
 	DWORD mainStackEsp;
+	DWORD unpackEFlags;
 	DWORD unpackStackEsp;
+	BYTE* awsmStart;
 } mainLoopFrame, * pMainLoopFrame;
 
 

@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 		exit(-1);
 	}
 
+	
 	// printf("%d", sizeof(IMAGE_SECTION_HEADER));
 	const auto& baseExecutable = acquire_file_base(argv[1]);
 	if (baseExecutable == nullptr) {
@@ -45,7 +46,7 @@ int main(int argc, char* argv[])
 
 	int i;
 	// DWORD address = 0;
-	for (i = 0; i < fileHeader->NumberOfSections && std::strcmp(const_cast<const char*>(reinterpret_cast<char*>(currentSection->Name)), MODIFY_SECTION); i++) {
+	for (i = 0; i < fileHeader->NumberOfSections && std::strcmp(const_cast<const char*>(reinterpret_cast<char*>(currentSection->Name)), MODIFY_SECTION); ++i) {
 		/*
 		printf("Name: %s\n", currentSection->Name);
 		printf("VirtualSize: %x\n", currentSection->Misc.VirtualSize);
@@ -57,9 +58,10 @@ int main(int argc, char* argv[])
 		*/
 		// address += currentSection->Misc.VirtualSize;
 		currentSection = reinterpret_cast<PIMAGE_SECTION_HEADER>(static_cast<BYTE*>(sectionBegin) + i * sizeof(IMAGE_SECTION_HEADER));
+		
 	}
 
-	if (i == fileHeader->NumberOfSections) {
+	if (i > fileHeader->NumberOfSections) {
 		printf("Could not find %s section, exiting...\n", MODIFY_SECTION);
 		return 1;
 	}

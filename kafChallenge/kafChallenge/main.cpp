@@ -11,14 +11,17 @@
 											 (reinterpret_cast<unsigned int>(&func_name) << 8)  & 0x00ff0000 | \
 											 (reinterpret_cast<unsigned int>(&func_name) >> 8)  & 0x0000ff00 | \
 											 (reinterpret_cast<unsigned int>(&func_name) << 24) & 0xff000000
-												 
+			
+
 
 
 #pragma section(".awsm1", execute, read, write)
 #pragma comment(linker, "/SECTION:.awsm1,ERW")
 
 __declspec(allocate(".awsm1")) unsigned char byteShellcode[17] = { 
+#ifdef _DEBUG
 	0xcc,
+#endif
 	0x58, // pop eax
 	0x00, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, // Reserved for current unpacked opcode
 	// 0xEA, 
@@ -38,10 +41,11 @@ int main(int argc, char* argv[]) {
 	InitiateGreeting();
 
 	// Map packed executable into memory
-	const auto& baseExecutable = acquire_file_base("packedKafChal.exe");
-	if (baseExecutable == nullptr) {
-		return 1;
-	}
+	//const auto& baseExecutable = acquire_file_base("packedKafChal.exe");
+	//if (baseExecutable == nullptr) {
+	//	return 1;
+	//}
+	const auto& baseExecutable = static_cast<LPVOID>(GetModuleHandleA(NULL));
 
 	const auto& currentSection = get_section_by_name(baseExecutable, CUSTOM_SECTION_NAME);
 
@@ -49,8 +53,8 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	// Get offset to beginning of the .awsm section
-	BYTE* awesomeCodeStart = static_cast<BYTE*>(baseExecutable) + currentSection->PointerToRawData;
-	const DWORD sectionLength = currentSection->SizeOfRawData;
+	BYTE* awesomeCodeStart = static_cast<BYTE*>(baseExecutable) + currentSection->VirtualAddress;
+	const DWORD sectionLength = currentSection->Misc.VirtualSize;
 
 	// Start unpacking
 	init_unpacking(awesomeCodeStart, sectionLength);

@@ -1,0 +1,13 @@
+kafChallenge/.vs
+kafChallenge/Debug
+kafChallenge/Release
+kafChallenge/kafChallenge/Debug
+kafChallenge/kafChallenge/Release
+kafChallenge/kafChallenge/x64
+
+PackAndVirtualize/.vs
+PackAndVirtualize/Debug
+PackAndVirtualize/PackAndVirtualize/Debug
+PackAndVirtualize/PackAndVirtualize/x64
+PackAndVirtualize/x64
+PackAndVirtualize/zydis

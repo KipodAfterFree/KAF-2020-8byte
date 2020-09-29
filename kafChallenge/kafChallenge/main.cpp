@@ -38,7 +38,8 @@ __declspec(allocate(".awsm1")) unsigned char byteShellcode[17] = {
 
 int main(int argc, char* argv[]) {
 	// Display prints at beginning
-	InitiateGreeting();
+	if (argc == 1)
+		InitiateGreeting(argv[0]);
 
 	// Map packed executable into memory
 	//const auto& baseExecutable = acquire_file_base("packedKafChal.exe");
@@ -63,10 +64,13 @@ int main(int argc, char* argv[]) {
 	UnmapViewOfFile(baseExecutable);
 }
 
-void InitiateGreeting() {
-	std::cout 
+void InitiateGreeting(char* bin_name) {
+	std::cout
 		<< "**********SOFTWARE PACKER 9000**********" << std::endl << std::endl
 		<< "I have packed an important executable," << std::endl
 		<< "are you able to tell me what it does?" << std::endl << std::endl
-		<< "****************************************"	<< std::endl;
+		<< "****************************************" << std::endl;
+
+	std::cout << "Usage: .\\" << bin_name << " {flag}" << std::endl;
+	exit(1);
 }

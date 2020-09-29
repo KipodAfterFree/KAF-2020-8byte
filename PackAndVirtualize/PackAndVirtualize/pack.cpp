@@ -20,7 +20,6 @@ static inline BYTE rotr(BYTE n, int c)
 
 volatile BYTE huge_packing_function(BYTE initalVal)
 {
-	
 	return pack_1(pack_4(pack_3(pack_1(pack_4(pack_2(pack_2(pack_1(initalVal) + 12) - 13) + 20) - 15) + 21) - 3) + 13);
 }
 

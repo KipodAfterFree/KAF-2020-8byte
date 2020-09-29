@@ -2,7 +2,7 @@
 #include <iostream>
 #include <windows.h>
 
-#define FILLER_SIZE 5 * 1024 * 1024 // 10MB
+#define FILLER_SIZE 4 * 1024 * 2// 2KB
 
 #pragma section(".awsm", execute, read)
 #pragma comment(linker, "/SECTION:.awsm,ER")
@@ -11,7 +11,7 @@ __declspec(allocate(".awsm")) unsigned char bigarray[FILLER_SIZE] = { 0x90 };
 
 #pragma code_seg(".awsm")
 int _tmain(int argc, char* argv[]) {
-	// flag is kafCTF{e1ght_byt3s_1s_4ll_1t_t4k3s}
+	// flag is KAF{e1ght_byt3s_1s_4ll_1t_t4k3s}
 	// printf("Hello world!\n");
 	const auto flag_attempt = __argv[1];
 	const auto flag_length = strlen(flag_attempt);
@@ -303,8 +303,6 @@ int _tmain(int argc, char* argv[]) {
 	if ((flag_attempt[33] & 2) != 2) { printf("Failed!"); exit(1); }
 	
 	printf("Success!!!");
-	return 0;
+	exit(1);
 }
-
-void test_function() { printf("hello world!!!!"); }
 

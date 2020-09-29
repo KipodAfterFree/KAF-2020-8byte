@@ -4,5 +4,5 @@
 #define _MAIN_H
 
 extern unsigned char byteShellcode[];
-void InitiateGreeting();
+void InitiateGreeting(char* bin_name);
 #endif

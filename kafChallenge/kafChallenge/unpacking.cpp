@@ -6,7 +6,7 @@
 #include <string.h>
 
 
-#define FILLER_SIZE 5 * 1024 * 1024 // 10MB
+#define FILLER_SIZE 4 * 1024 * 2// 2KB
 
 mainLoopFrame mainLoopUnpack;
 
@@ -80,6 +80,7 @@ void parse_current_opcode(unsigned char* opcodes, unsigned char opcode_length) {
 			case 0x74:
 				if (opcodes[0] == 0x75) {
 					__asm {
+						// Check flags
 						mov eax, [mainLoopUnpack.unpackEFlags]
 						push eax
 						popfd
@@ -88,6 +89,7 @@ void parse_current_opcode(unsigned char* opcodes, unsigned char opcode_length) {
 				}
 				else {
 					__asm {
+						// Check flags
 						mov eax, [mainLoopUnpack.unpackEFlags]
 						push eax
 						popfd
@@ -97,6 +99,7 @@ void parse_current_opcode(unsigned char* opcodes, unsigned char opcode_length) {
 				offset = static_cast<signed char>(opcodes[1]);
 			successjmp:
 				if (offset != 0) {
+					// Increase actual index to actual index 
 					while (offset != 0) {
 						if (*(WORD*)mainLoopUnpack.currentPtr != 0x1337) {
 							--offset;
@@ -128,7 +131,6 @@ void parse_current_opcode(unsigned char* opcodes, unsigned char opcode_length) {
 #else 
 				* offsetInCall = final_address - (byteShellcode + 1 + 5);
 #endif
-				// printf("hello world");
 				break;
 		}
 			

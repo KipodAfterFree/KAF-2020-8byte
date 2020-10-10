@@ -2,7 +2,7 @@
 
 static inline BYTE rotl(BYTE n, int c)
 {
-	const unsigned int mask = (sizeof(n) - 1);  // assumes width is a power of 2.
+	const unsigned int mask = (sizeof(n) - 1);
 
 	// assert ( (c<=mask) &&"rotate by type width or more");
 	c &= mask;

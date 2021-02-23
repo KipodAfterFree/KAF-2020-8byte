@@ -7,4 +7,4 @@ Solve script can be found in kafChllange/solve
 2. open PackAndVirtualize in visual studio and compile it as well
 3. Take the exe compiled from the kafChallenge project, and run the following command:
 
-$ packandvirtualize.exe < path to kaf_challenge.exe >
+$ packandvirtualize.exe <path/to/challenge.exe>
